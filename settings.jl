@@ -1,4 +1,7 @@
 __precompile__
+
+using FastGaussQuadrature, LinearAlgebra
+
 mutable struct Settings
     # grid settings
     # number spatial interfaces
@@ -34,7 +37,7 @@ mutable struct Settings
     # low rank parameters
     r::Int;
 
-    function Settings(Nx::Int=502,problem::String="LineSource")
+    function Settings(Nx::Int=502,nPN=100,r=10,epsilon=1.0,problem::String="LineSource")
         # spatial grid setting
         NCells = Nx - 1;
         a = -1.5; # left boundary
@@ -42,11 +45,8 @@ mutable struct Settings
         
         # time settings
         tEnd = 1.0;
-        cfl = 0.2; # CFL condition
+        cfl = 1.0; # CFL condition
         
-        # number PN moments
-        nPN = 100;
-
         x = collect(range(a,stop = b,length = NCells));
         dx = x[2]-x[1];
         x = [x[1]-dx;x]; # add ghost cells so that boundary cell centers lie on a and b
@@ -57,11 +57,16 @@ mutable struct Settings
         sigmaS = 1.0;
         sigmaA = 0.0; 
 
-        r = 30;
-        epsilon = 1.0#1e-4;
-
-        ABar = 0.5773502691896257;
-        dt = 4*epsilon*dx + (dx^2 * sigmaS)/(2+0.5*ABar^2)+2*sqrt(epsilon*dx^3*sigmaS/(1+1/4*ABar^2));
+        # compute CFL condition
+        mu, w = gausslegendre(nPN+1)
+        dt = 1000;
+        for k = 1:(nPN+1)
+            dtTmp = 1/(2 + (nPN+1)*w[k]) * (epsilon * dx / abs(mu[k]) + sigmaS * dx^2 / 2 / mu[k]^2);
+            if dtTmp < dt
+                dt = dtTmp;
+                #println(w[k], " ", mu[k])
+            end
+        end
         dt = cfl*dt;
 
         # build class
