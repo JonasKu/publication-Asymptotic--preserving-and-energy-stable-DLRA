@@ -61,10 +61,11 @@ mutable struct Settings
         mu, w = gausslegendre(nPN+1)
         dt = 1000;
         for k = 1:(nPN+1)
-            dtTmp = 1/(2 + (nPN+1)*w[k]) * (epsilon * dx / abs(mu[k]) + sigmaS * dx^2 / 2 / mu[k]^2);
+            dtTmp = 1/(4*(nPN+1)*w[k]) * (epsilon * dx / abs(mu[k]) + sigmaS * dx^2 / 2 / mu[k]^2);
             if dtTmp < dt
                 dt = dtTmp;
                 #println(w[k], " ", mu[k])
+                #println(dt)
             end
         end
         dt = cfl*dt;
